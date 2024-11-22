@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/astaxie/beego/logs"
@@ -20,7 +20,7 @@ func SaveToFile(name string, body []byte) error {
 
 func CapSignal(proc func()) {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		sig := <-signalChan
@@ -30,54 +30,6 @@ func CapSignal(proc func()) {
 	}()
 }
 
-func StringList(list []string) string {
-	var body string
-	for idx, v := range list {
-		if idx == len(list)-1 {
-			body += fmt.Sprintf("%s", v)
-		} else {
-			body += fmt.Sprintf("%s;", v)
-		}
-	}
-	return body
-}
-
-func StringDiff(oldlist []string, newlist []string) ([]string, []string) {
-	del := make([]string, 0)
-	add := make([]string, 0)
-	for _, v1 := range oldlist {
-		flag := false
-		for _, v2 := range newlist {
-			if v1 == v2 {
-				flag = true
-				break
-			}
-		}
-		if !flag {
-			del = append(del, v1)
-		}
-	}
-	for _, v1 := range newlist {
-		flag := false
-		for _, v2 := range oldlist {
-			if v1 == v2 {
-				flag = true
-				break
-			}
-		}
-		if !flag {
-			add = append(add, v1)
-		}
-	}
-	return del, add
-}
-
-func StringClone(list []string) []string {
-	output := make([]string, len(list))
-	copy(output, list)
-	return output
-}
-
 func ReadFileList(dir string) ([]string, error) {
 	output := make([]string, 0)
 
@@ -85,7 +37,7 @@ func ReadFileList(dir string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && filepath.Ext(path) == ".HEIC" {
+		if !info.IsDir() && strings.EqualFold(filepath.Ext(path), ".HEIC") {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
 				return err

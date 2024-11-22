@@ -9,7 +9,7 @@ import (
 	"github.com/adrium/goheif"
 )
 
-func ConvertHeic2Png(fileIn string, fileOut string) error {
+func ConvertHeic2Png(fileIn string, fileOut string, level string) error {
 	fd, err := os.Open(fileIn)
 	if err != nil {
 		return fmt.Errorf("unable to open %s: %w", fileIn, err)
@@ -27,7 +27,20 @@ func ConvertHeic2Png(fileIn string, fileOut string) error {
 	}
 	defer fOut.Close()
 
-	pngenc := png.Encoder{CompressionLevel: png.BestCompression}
+	var cmpLevel png.CompressionLevel
+
+	switch level {
+	case "Low":
+		cmpLevel = png.NoCompression
+	case "Middle":
+		cmpLevel = png.BestSpeed
+	case "High:":
+		cmpLevel = png.BestCompression
+	default:
+		cmpLevel = png.DefaultCompression
+	}
+
+	pngenc := png.Encoder{CompressionLevel: cmpLevel}
 	err = pngenc.Encode(fOut, img)
 	if err != nil {
 		return fmt.Errorf("unable to encode %s: %w", fileOut, err)

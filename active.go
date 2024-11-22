@@ -13,6 +13,7 @@ func ActiveWidget() []Widget {
 			AssignTo: &covert,
 			Text:     "Covert",
 			OnClicked: func() {
+				ProcessUpdate(0)
 				covert.SetEnabled(false)
 				cancel.SetEnabled(false)
 
@@ -20,6 +21,7 @@ func ActiveWidget() []Widget {
 					FileTableActive(true, true)
 					covert.SetEnabled(true)
 					cancel.SetEnabled(true)
+					ProcessUpdate(0)
 				}()
 			},
 		},

@@ -126,18 +126,29 @@ func FileTableActive(isPNG bool, isJpeg bool) {
 	lt.PublishRowsReset()
 	lt.Sort(lt.sortColumn, lt.sortOrder)
 
-	for i, file := range fileList {
+	totalNumber := 0
+	if isPNG {
+		totalNumber = totalNumber + len(fileList)
+	}
+
+	if isJpeg {
+		totalNumber = totalNumber + len(fileList)
+	}
+
+	index := 0
+
+	for _, file := range fileList {
 		timestamp := time.Now().Format("2006-01-02T15-04-05.000000")
 
 		if isPNG {
 			item := new(FileItem)
-			item.Index = 2 * i
+			item.Index = index
 			item.InputFile = file
 			item.Status = STATUS_UNDO
 			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
 				fmt.Sprintf("%s.png", timestamp))
 
-			err := ConvertHeic2Png(item.InputFile, item.OutputFile)
+			err := ConvertHeic2Png(item.InputFile, item.OutputFile, ConfigGet().PngCompLevel)
 			if err != nil {
 				logs.Error("covert heic to png fail, %s", err.Error())
 				item.Status = STATUS_FAIL
@@ -146,17 +157,20 @@ func FileTableActive(isPNG bool, isJpeg bool) {
 			}
 
 			lt.items = append(lt.items, item)
+			index++
+
+			ProcessUpdate(float32(index) / float32(totalNumber))
 		}
 
 		if isJpeg {
 			item := new(FileItem)
-			item.Index = 2*i + 1
+			item.Index = index
 			item.InputFile = file
 			item.Status = STATUS_UNDO
 			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
 				fmt.Sprintf("%s.jpeg", timestamp))
 
-			err := ConvertHeic2Jpeg(item.InputFile, item.OutputFile, 100)
+			err := ConvertHeic2Jpeg(item.InputFile, item.OutputFile, ConfigGet().JpegQuality)
 			if err != nil {
 				logs.Error("covert heic to jpeg fail, %s", err.Error())
 				item.Status = STATUS_FAIL
@@ -165,6 +179,9 @@ func FileTableActive(isPNG bool, isJpeg bool) {
 			}
 
 			lt.items = append(lt.items, item)
+			index++
+
+			ProcessUpdate(float32(index) / float32(totalNumber))
 		}
 
 		lt.PublishRowsReset()
@@ -175,7 +192,7 @@ func FileTableActive(isPNG bool, isJpeg bool) {
 func TableWidget() []Widget {
 	return []Widget{
 		Label{
-			Text: "File List:",
+			Text: "Output File List: ",
 		},
 		TableView{
 			AssignTo:         &tableView,

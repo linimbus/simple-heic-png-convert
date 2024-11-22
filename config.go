@@ -10,17 +10,23 @@ import (
 )
 
 type Config struct {
-	InputDir  string `json:"inputDir"`
-	OutputDir string `json:"outputDir"`
-	Mode      string `json:"mode"`
-	Pixel     int    `json:"pixel"`
+	InputDir     string `json:"inputDir"`
+	OutputDir    string `json:"outputDir"`
+	PngEnable    bool   `json:"pngEnable"`
+	PngCompLevel string `json:"pngCompressionLevel"`
+	JpegEnable   bool   `json:"jpegEnable"`
+	JpegQuality  int    `json:"jpegQuality"`
+	TaskNum      int    `json:"taskNum"`
 }
 
 var configCache = Config{
-	InputDir:  "",
-	OutputDir: "",
-	Mode:      "",
-	Pixel:     -1,
+	InputDir:     "",
+	OutputDir:    "",
+	PngEnable:    true,
+	PngCompLevel: "Low",
+	JpegEnable:   true,
+	JpegQuality:  100,
+	TaskNum:      10,
 }
 
 var configFilePath string
@@ -52,13 +58,28 @@ func OutputDirSave(path string) error {
 	return configSyncToFile()
 }
 
-func ModeSave(mode string) error {
-	configCache.Mode = mode
+func PngEnableSave(flag bool) error {
+	configCache.PngEnable = flag
 	return configSyncToFile()
 }
 
-func PixelSave(pixel int) error {
-	configCache.Pixel = pixel
+func PngCompressLevelSave(level string) error {
+	configCache.PngCompLevel = level
+	return configSyncToFile()
+}
+
+func JpegEnableSave(flag bool) error {
+	configCache.JpegEnable = flag
+	return configSyncToFile()
+}
+
+func JpegQualitySave(quality int) error {
+	configCache.JpegQuality = quality
+	return configSyncToFile()
+}
+
+func TaskNumSave(num int) error {
+	configCache.TaskNum = num
 	return configSyncToFile()
 }
 

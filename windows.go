@@ -53,6 +53,7 @@ func mainWindows() {
 		Children: []Widget{
 			Composite{
 				Layout:   VBox{},
+				MaxSize:  Size{Height: 150},
 				Children: ConsoleWidget(),
 			},
 			Composite{
@@ -61,6 +62,7 @@ func mainWindows() {
 			},
 			Composite{
 				Layout:   HBox{},
+				MaxSize:  Size{Height: 80},
 				Children: ActiveWidget(),
 			},
 		},
