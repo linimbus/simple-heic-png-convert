@@ -85,7 +85,7 @@ func ReadFileList(dir string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && filepath.Ext(path) == ".png" {
+		if !info.IsDir() && filepath.Ext(path) == ".HEIC" {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
 				return err
