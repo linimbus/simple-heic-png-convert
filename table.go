@@ -110,7 +110,7 @@ func convertTask(input <-chan *FileItem, output chan<- *FileItem, wg *sync.WaitG
 		if item.format == "PNG" {
 			item.Status = STATUS_UNDO
 			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
-				fmt.Sprintf("%s.png", timestamp))
+				fmt.Sprintf("%s_%d.png", timestamp, item.Index))
 
 			err := ConvertHeic2Png(item.InputFile, item.OutputFile, ConfigGet().PngCompLevel)
 			if err != nil {
@@ -124,7 +124,7 @@ func convertTask(input <-chan *FileItem, output chan<- *FileItem, wg *sync.WaitG
 		if item.format == "JPEG" {
 			item.Status = STATUS_UNDO
 			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
-				fmt.Sprintf("%s.jpeg", timestamp))
+				fmt.Sprintf("%s_%d.jpeg", timestamp, item.Index))
 
 			err := ConvertHeic2Jpeg(item.InputFile, item.OutputFile, ConfigGet().JpegQuality)
 			if err != nil {
@@ -215,12 +215,12 @@ func FileConvertActive() {
 	doneGroup.Add(1)
 	go tableUpdate(totalNumber, outputChannel, doneGroup)
 
-	for _, file := range fileList {
+	for index, file := range fileList {
 		if ConfigGet().PngEnable {
-			inputChannel <- &FileItem{Index: -1, InputFile: file, format: "PNG"}
+			inputChannel <- &FileItem{Index: index, InputFile: file, format: "PNG"}
 		}
 		if ConfigGet().JpegEnable {
-			inputChannel <- &FileItem{Index: -1, InputFile: file, format: "JPEG"}
+			inputChannel <- &FileItem{Index: index, InputFile: file, format: "JPEG"}
 		}
 	}
 
