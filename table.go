@@ -18,6 +18,7 @@ type FileItem struct {
 	OutputFile string
 	Status     string
 
+	format  string // PNG,JPEG
 	checked bool
 }
 
@@ -93,18 +94,86 @@ const (
 
 var consoleFileTable *FileModel
 var tableView *walk.TableView
+var activeChannel chan *FileItem
 
 func init() {
 	consoleFileTable = new(FileModel)
 	consoleFileTable.items = make([]*FileItem, 0)
 }
 
-func FileTableActive(isPNG bool, isJpeg bool) {
+func convertTask(input <-chan *FileItem, output chan<- *FileItem, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for item := range input {
+		timestamp := time.Now().Format("2006-01-02T15-04-05.000000")
+
+		if item.format == "PNG" {
+			item.Status = STATUS_UNDO
+			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
+				fmt.Sprintf("%s.png", timestamp))
+
+			err := ConvertHeic2Png(item.InputFile, item.OutputFile, ConfigGet().PngCompLevel)
+			if err != nil {
+				logs.Error("covert %s heic to png fail, %s", item.InputFile, err.Error())
+				item.Status = STATUS_FAIL
+			} else {
+				item.Status = STATUS_DONE
+			}
+		}
+
+		if item.format == "JPEG" {
+			item.Status = STATUS_UNDO
+			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
+				fmt.Sprintf("%s.jpeg", timestamp))
+
+			err := ConvertHeic2Jpeg(item.InputFile, item.OutputFile, ConfigGet().JpegQuality)
+			if err != nil {
+				logs.Error("covert %s heic to jpeg fail, %s", item.InputFile, err.Error())
+				item.Status = STATUS_FAIL
+			} else {
+				item.Status = STATUS_DONE
+			}
+		}
+
+		output <- item
+	}
+}
+
+func tableInit() {
 	lt := consoleFileTable
 
 	lt.Lock()
 	defer lt.Unlock()
 
+	tableView.SetCurrentIndex(-1)
+	lt.items = make([]*FileItem, 0)
+	lt.PublishRowsReset()
+	lt.Sort(lt.sortColumn, lt.sortOrder)
+}
+
+func tableUpdate(totalNumber int, input <-chan *FileItem, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	index := 0
+
+	for item := range input {
+		lt := consoleFileTable
+
+		lt.Lock()
+		item.Index = index
+
+		lt.items = append(lt.items, item)
+		lt.PublishRowsReset()
+		lt.Sort(lt.sortColumn, lt.sortOrder)
+
+		index++
+		ProcessUpdate(float32(index) / float32(totalNumber))
+
+		lt.Unlock()
+	}
+}
+
+func FileConvertActive() {
 	if ConfigGet().InputDir == "" {
 		ErrorBoxAction(mainWindow, "Please set input directory first!")
 		return
@@ -121,72 +190,45 @@ func FileTableActive(isPNG bool, isJpeg bool) {
 		return
 	}
 
-	tableView.SetCurrentIndex(-1)
-	lt.items = make([]*FileItem, 0)
-	lt.PublishRowsReset()
-	lt.Sort(lt.sortColumn, lt.sortOrder)
+	tableInit()
+
+	inputChannel := make(chan *FileItem, 10)
+	outputChannel := make(chan *FileItem, 10)
+	taskGroup := new(sync.WaitGroup)
+	doneGroup := new(sync.WaitGroup)
 
 	totalNumber := 0
-	if isPNG {
+
+	taskGroup.Add(ConfigGet().TaskNum)
+	for i := 0; i < ConfigGet().TaskNum; i++ {
+		go convertTask(inputChannel, outputChannel, taskGroup)
+	}
+
+	if ConfigGet().PngEnable {
 		totalNumber = totalNumber + len(fileList)
 	}
 
-	if isJpeg {
+	if ConfigGet().JpegEnable {
 		totalNumber = totalNumber + len(fileList)
 	}
 
-	index := 0
+	doneGroup.Add(1)
+	go tableUpdate(totalNumber, outputChannel, doneGroup)
 
 	for _, file := range fileList {
-		timestamp := time.Now().Format("2006-01-02T15-04-05.000000")
-
-		if isPNG {
-			item := new(FileItem)
-			item.Index = index
-			item.InputFile = file
-			item.Status = STATUS_UNDO
-			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
-				fmt.Sprintf("%s.png", timestamp))
-
-			err := ConvertHeic2Png(item.InputFile, item.OutputFile, ConfigGet().PngCompLevel)
-			if err != nil {
-				logs.Error("covert heic to png fail, %s", err.Error())
-				item.Status = STATUS_FAIL
-			} else {
-				item.Status = STATUS_DONE
-			}
-
-			lt.items = append(lt.items, item)
-			index++
-
-			ProcessUpdate(float32(index) / float32(totalNumber))
+		if ConfigGet().PngEnable {
+			inputChannel <- &FileItem{Index: -1, InputFile: file, format: "PNG"}
 		}
-
-		if isJpeg {
-			item := new(FileItem)
-			item.Index = index
-			item.InputFile = file
-			item.Status = STATUS_UNDO
-			item.OutputFile = filepath.Join(ConfigGet().OutputDir,
-				fmt.Sprintf("%s.jpeg", timestamp))
-
-			err := ConvertHeic2Jpeg(item.InputFile, item.OutputFile, ConfigGet().JpegQuality)
-			if err != nil {
-				logs.Error("covert heic to jpeg fail, %s", err.Error())
-				item.Status = STATUS_FAIL
-			} else {
-				item.Status = STATUS_DONE
-			}
-
-			lt.items = append(lt.items, item)
-			index++
-
-			ProcessUpdate(float32(index) / float32(totalNumber))
+		if ConfigGet().JpegEnable {
+			inputChannel <- &FileItem{Index: -1, InputFile: file, format: "JPEG"}
 		}
-
-		lt.PublishRowsReset()
-		lt.Sort(lt.sortColumn, lt.sortOrder)
 	}
+
+	close(inputChannel)
+	taskGroup.Wait()
+
+	close(outputChannel)
+	doneGroup.Wait()
 }
 
 func TableWidget() []Widget {

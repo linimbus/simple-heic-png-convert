@@ -16,17 +16,19 @@ func boxAction(from walk.Form, title string, icon *walk.Icon, message string) {
 		AssignTo:     &dlg,
 		Title:        title,
 		Icon:         icon,
-		MinSize:      Size{Width: 210, Height: 150},
-		Size:         Size{Width: 210, Height: 150},
-		MaxSize:      Size{Width: 310, Height: 210},
+		MinSize:      Size{Width: 200, Height: 200},
+		Size:         Size{Width: 200, Height: 200},
 		CancelButton: &cancelPB,
 		Layout:       VBox{},
 		Children: []Widget{
-			TextLabel{
-				Text:          message,
-				TextAlignment: AlignHNearVCenter,
-				MinSize:       Size{Width: 200, Height: 150},
-				MaxSize:       Size{Width: 300, Height: 200},
+			Composite{
+				Layout: HBox{},
+				Children: []Widget{
+					TextLabel{
+						Text:    message,
+						MinSize: Size{Width: 180, Height: 180},
+					},
+				},
 			},
 			PushButton{
 				AssignTo: &cancelPB,

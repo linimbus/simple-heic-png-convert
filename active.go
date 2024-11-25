@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
@@ -18,10 +20,21 @@ func ActiveWidget() []Widget {
 				cancel.SetEnabled(false)
 
 				go func() {
-					FileTableActive(true, true)
-					covert.SetEnabled(true)
-					cancel.SetEnabled(true)
-					ProcessUpdate(0)
+
+					defer func() {
+						ProcessUpdate(1)
+						time.Sleep(time.Second)
+						covert.SetEnabled(true)
+						cancel.SetEnabled(true)
+						ProcessUpdate(0)
+					}()
+
+					if !ConfigGet().PngEnable && !ConfigGet().JpegEnable {
+						ErrorBoxAction(mainWindow, "Please select one or both of the PNG or JPEG options!")
+						return
+					} else {
+						FileConvertActive()
+					}
 				}()
 			},
 		},

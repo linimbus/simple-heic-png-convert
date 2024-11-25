@@ -189,8 +189,8 @@ func ConsoleWidget() []Widget {
 				NumberEdit{
 					AssignTo:    &taskNum,
 					Value:       float64(ConfigGet().TaskNum),
-					ToolTipText: "1~100",
-					MaxValue:    100,
+					ToolTipText: "1~20",
+					MaxValue:    20,
 					MinValue:    1,
 					OnValueChanged: func() {
 						err := TaskNumSave(int(taskNum.Value()))
